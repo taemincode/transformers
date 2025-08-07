@@ -43,10 +43,29 @@ from typing import Any, Callable, Optional, Union
 from unittest import mock
 from unittest.mock import patch
 
-import huggingface_hub.utils
+try:
+    import huggingface_hub.utils
+    from huggingface_hub import delete_repo
+    import huggingface_hub
+    _huggingface_hub_available = True
+except ImportError:
+    # Mock modules and functions when huggingface_hub is not available
+    class _MockHuggingFaceHub:
+        @staticmethod
+        def create_repo(*args, **kwargs):
+            raise ImportError("huggingface_hub is required to use create_repo. Install it with `pip install huggingface_hub`.")
+
+    huggingface_hub = _MockHuggingFaceHub()
+    _huggingface_hub_available = False
+
+    def _raise_huggingface_hub_error(name):
+        raise ImportError(f"huggingface_hub is required to use {name}. Install it with `pip install huggingface_hub`.")
+
+    def delete_repo(*args, **kwargs):
+        _raise_huggingface_hub_error("delete_repo")
+
 import requests
 import urllib3
-from huggingface_hub import delete_repo
 from packaging import version
 
 from transformers import Trainer
@@ -655,7 +674,11 @@ def require_read_token(test_case):
         @functools.wraps(test_case)
         def wrapper(*args, **kwargs):
             if token is not None:
-                with patch("huggingface_hub.utils._headers.get_token", return_value=token):
+                if _huggingface_hub_available:
+                    with patch("huggingface_hub.utils._headers.get_token", return_value=token):
+                        return test_case(*args, **kwargs)
+                else:
+                    # Skip test if huggingface_hub is not available
                     return test_case(*args, **kwargs)
             else:  # Allow running locally with the default token env variable
                 # dealing with static/class methods and called by `self.xxx`

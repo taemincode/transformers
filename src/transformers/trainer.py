@@ -45,11 +45,32 @@ from .integrations import (
 
 # ruff: isort: on
 
-import huggingface_hub.utils as hf_hub_utils
+try:
+    import huggingface_hub.utils as hf_hub_utils
+    from huggingface_hub import ModelCard, create_repo, upload_folder
+    _huggingface_hub_available = True
+except ImportError:
+    # Mock modules and functions when huggingface_hub is not available
+    hf_hub_utils = None
+    _huggingface_hub_available = False
+
+    def _raise_huggingface_hub_error(name):
+        raise ImportError(f"huggingface_hub is required to use {name}. Install it with `pip install huggingface_hub`.")
+
+    class ModelCard:
+        @staticmethod
+        def load(*args, **kwargs):
+            _raise_huggingface_hub_error("ModelCard.load")
+
+    def create_repo(*args, **kwargs):
+        _raise_huggingface_hub_error("create_repo")
+
+    def upload_folder(*args, **kwargs):
+        _raise_huggingface_hub_error("upload_folder")
+
 import numpy as np
 import torch
 import torch.distributed as dist
-from huggingface_hub import ModelCard, create_repo, upload_folder
 from packaging import version
 from torch import nn
 from torch.utils.data import DataLoader, Dataset, IterableDataset, RandomSampler, SequentialSampler
@@ -2225,7 +2246,8 @@ class Trainer:
         if args.push_to_hub:
             try:
                 # Disable progress bars when uploading models during checkpoints to avoid polluting stdout
-                hf_hub_utils.disable_progress_bars()
+                if _huggingface_hub_available:
+                    hf_hub_utils.disable_progress_bars()
                 return inner_training_loop(
                     args=args,
                     resume_from_checkpoint=resume_from_checkpoint,
@@ -2233,7 +2255,8 @@ class Trainer:
                     ignore_keys_for_eval=ignore_keys_for_eval,
                 )
             finally:
-                hf_hub_utils.enable_progress_bars()
+                if _huggingface_hub_available:
+                    hf_hub_utils.enable_progress_bars()
         else:
             return inner_training_loop(
                 args=args,

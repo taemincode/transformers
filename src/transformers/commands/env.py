@@ -20,7 +20,12 @@ import os
 import platform
 from argparse import ArgumentParser
 
-import huggingface_hub
+try:
+    import huggingface_hub
+    _huggingface_hub_available = True
+except ImportError:
+    huggingface_hub = None
+    _huggingface_hub_available = False
 
 from .. import __version__ as version
 from ..integrations.deepspeed import is_deepspeed_available
@@ -147,7 +152,7 @@ class EnvironmentCommand(BaseTransformersCLICommand):
             "`transformers` version": version,
             "Platform": platform.platform(),
             "Python version": platform.python_version(),
-            "Huggingface_hub version": huggingface_hub.__version__,
+            "Huggingface_hub version": huggingface_hub.__version__ if _huggingface_hub_available else "not installed",
             "Safetensors version": f"{safetensors_version}",
             "Accelerate version": f"{accelerate_version}",
             "Accelerate config": f"{accelerate_config_str}",

@@ -1,7 +1,27 @@
 from typing import Optional
 
 import requests
-from huggingface_hub import Discussion, HfApi, get_repo_discussions
+
+try:
+    from huggingface_hub import Discussion, HfApi, get_repo_discussions
+    _huggingface_hub_available = True
+except ImportError:
+    # Mock classes and functions when huggingface_hub is not available
+    _huggingface_hub_available = False
+
+    def _raise_huggingface_hub_error(name):
+        raise ImportError(f"huggingface_hub is required to use {name}. Install it with `pip install huggingface_hub`.")
+
+    class Discussion:
+        def __init__(self, *args, **kwargs):
+            _raise_huggingface_hub_error("Discussion")
+
+    class HfApi:
+        def __init__(self, *args, **kwargs):
+            _raise_huggingface_hub_error("HfApi")
+
+    def get_repo_discussions(*args, **kwargs):
+        _raise_huggingface_hub_error("get_repo_discussions")
 
 from .utils import cached_file, http_user_agent, logging
 
