@@ -53,6 +53,12 @@ for pkg in pkgs_to_check_at_runtime:
             # Transformers with PyTorch
             if not is_accelerate_available():
                 continue  # not required, check version only if installed
+        elif pkg == "huggingface-hub":
+            # must be loaded here, or else tqdm check may fail
+            from .utils.import_utils import _is_package_available
+
+            if not _is_package_available("huggingface_hub"):
+                continue  # not required, check version only if installed
 
         require_version_core(deps[pkg])
     else:

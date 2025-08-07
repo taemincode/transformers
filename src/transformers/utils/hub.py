@@ -27,37 +27,111 @@ from typing import Optional, Union
 from urllib.parse import urlparse
 from uuid import uuid4
 
-import huggingface_hub
 import requests
-from huggingface_hub import (
-    _CACHED_NO_EXIST,
-    CommitOperationAdd,
-    ModelCard,
-    ModelCardData,
-    constants,
-    create_branch,
-    create_commit,
-    create_repo,
-    hf_hub_download,
-    hf_hub_url,
-    list_repo_tree,
-    snapshot_download,
-    try_to_load_from_cache,
-)
-from huggingface_hub.file_download import REGEX_COMMIT_HASH, http_get
-from huggingface_hub.utils import (
-    EntryNotFoundError,
-    GatedRepoError,
-    HfHubHTTPError,
-    LocalEntryNotFoundError,
-    OfflineModeIsEnabled,
-    RepositoryNotFoundError,
-    RevisionNotFoundError,
-    build_hf_headers,
-    get_session,
-    hf_raise_for_status,
-    send_telemetry,
-)
+
+try:
+    import huggingface_hub
+    from huggingface_hub import (
+        _CACHED_NO_EXIST,
+        CommitOperationAdd,
+        ModelCard,
+        ModelCardData,
+        constants,
+        create_branch,
+        create_commit,
+        create_repo,
+        hf_hub_download,
+        hf_hub_url,
+        list_repo_tree,
+        snapshot_download,
+        try_to_load_from_cache,
+    )
+    from huggingface_hub.file_download import REGEX_COMMIT_HASH, http_get
+    from huggingface_hub.utils import (
+        EntryNotFoundError,
+        GatedRepoError,
+        HfHubHTTPError,
+        LocalEntryNotFoundError,
+        OfflineModeIsEnabled,
+        RepositoryNotFoundError,
+        RevisionNotFoundError,
+        build_hf_headers,
+        get_session,
+        hf_raise_for_status,
+        send_telemetry,
+    )
+except ImportError:
+    # Mock classes and functions when huggingface_hub is not available
+    huggingface_hub = None
+    _CACHED_NO_EXIST = None
+    
+    # Mock exception classes
+    class _MockException(Exception):
+        pass
+    
+    EntryNotFoundError = _MockException
+    GatedRepoError = _MockException
+    HfHubHTTPError = _MockException
+    LocalEntryNotFoundError = _MockException
+    OfflineModeIsEnabled = _MockException
+    RepositoryNotFoundError = _MockException
+    RevisionNotFoundError = _MockException
+    
+    # Mock constants and regex
+    constants = None
+    REGEX_COMMIT_HASH = None
+    
+    # Mock functions that require huggingface_hub
+    def _raise_huggingface_hub_error(name):
+        raise ImportError(f"huggingface_hub is required to use {name}. Install it with `pip install huggingface_hub`.")
+    
+    def CommitOperationAdd(*args, **kwargs):
+        _raise_huggingface_hub_error("CommitOperationAdd")
+    
+    def ModelCard(*args, **kwargs):
+        _raise_huggingface_hub_error("ModelCard")
+    
+    def ModelCardData(*args, **kwargs):
+        _raise_huggingface_hub_error("ModelCardData")
+    
+    def create_branch(*args, **kwargs):
+        _raise_huggingface_hub_error("create_branch")
+    
+    def create_commit(*args, **kwargs):
+        _raise_huggingface_hub_error("create_commit")
+    
+    def create_repo(*args, **kwargs):
+        _raise_huggingface_hub_error("create_repo")
+    
+    def hf_hub_download(*args, **kwargs):
+        _raise_huggingface_hub_error("hf_hub_download")
+    
+    def hf_hub_url(*args, **kwargs):
+        _raise_huggingface_hub_error("hf_hub_url")
+    
+    def list_repo_tree(*args, **kwargs):
+        _raise_huggingface_hub_error("list_repo_tree")
+    
+    def snapshot_download(*args, **kwargs):
+        _raise_huggingface_hub_error("snapshot_download")
+    
+    def try_to_load_from_cache(*args, **kwargs):
+        _raise_huggingface_hub_error("try_to_load_from_cache")
+    
+    def http_get(*args, **kwargs):
+        _raise_huggingface_hub_error("http_get")
+    
+    def build_hf_headers(*args, **kwargs):
+        _raise_huggingface_hub_error("build_hf_headers")
+    
+    def get_session(*args, **kwargs):
+        _raise_huggingface_hub_error("get_session")
+    
+    def hf_raise_for_status(*args, **kwargs):
+        _raise_huggingface_hub_error("hf_raise_for_status")
+    
+    def send_telemetry(*args, **kwargs):
+        _raise_huggingface_hub_error("send_telemetry")
 from requests.exceptions import HTTPError
 
 from . import __version__, logging
@@ -79,7 +153,7 @@ CHAT_TEMPLATE_DIR = "additional_chat_templates"
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
-_is_offline_mode = huggingface_hub.constants.HF_HUB_OFFLINE
+_is_offline_mode = constants.HF_HUB_OFFLINE if constants else False
 
 
 def is_offline_mode():
@@ -87,7 +161,7 @@ def is_offline_mode():
 
 
 torch_cache_home = os.getenv("TORCH_HOME", os.path.join(os.getenv("XDG_CACHE_HOME", "~/.cache"), "torch"))
-default_cache_path = constants.default_cache_path
+default_cache_path = constants.default_cache_path if constants else os.path.join(torch_cache_home, "transformers")
 
 # Determine default cache directory. Lots of legacy environment variables to ensure backward compatibility.
 # The best way to set the cache path is with the environment variable HF_HOME. For more details, check out this
@@ -97,11 +171,11 @@ default_cache_path = constants.default_cache_path
 # to be set to the right value.
 #
 # TODO: clean this for v5?
-PYTORCH_PRETRAINED_BERT_CACHE = os.getenv("PYTORCH_PRETRAINED_BERT_CACHE", constants.HF_HUB_CACHE)
+PYTORCH_PRETRAINED_BERT_CACHE = os.getenv("PYTORCH_PRETRAINED_BERT_CACHE", constants.HF_HUB_CACHE if constants else default_cache_path)
 PYTORCH_TRANSFORMERS_CACHE = os.getenv("PYTORCH_TRANSFORMERS_CACHE", PYTORCH_PRETRAINED_BERT_CACHE)
 TRANSFORMERS_CACHE = os.getenv("TRANSFORMERS_CACHE", PYTORCH_TRANSFORMERS_CACHE)
 
-HF_MODULES_CACHE = os.getenv("HF_MODULES_CACHE", os.path.join(constants.HF_HOME, "modules"))
+HF_MODULES_CACHE = os.getenv("HF_MODULES_CACHE", os.path.join(constants.HF_HOME if constants else torch_cache_home, "modules"))
 TRANSFORMERS_DYNAMIC_MODULE_NAME = "transformers_modules"
 SESSION_ID = uuid4().hex
 
@@ -232,7 +306,7 @@ def http_user_agent(user_agent: Union[dict, str, None] = None) -> str:
         ua += f"; torch/{_torch_version}"
     if is_tf_available():
         ua += f"; tensorflow/{_tf_version}"
-    if constants.HF_HUB_DISABLE_TELEMETRY:
+    if constants and constants.HF_HUB_DISABLE_TELEMETRY:
         return ua + "; telemetry/off"
     if is_training_run_on_sagemaker():
         ua += "; " + "; ".join(f"{k}/{v}" for k, v in define_sagemaker_information().items())
