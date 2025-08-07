@@ -16,8 +16,18 @@
 
 from functools import lru_cache
 
-from huggingface_hub import get_full_repo_name  # for backward compatibility
-from huggingface_hub.constants import HF_HUB_DISABLE_TELEMETRY as DISABLE_TELEMETRY  # for backward compatibility
+
+try:
+    from huggingface_hub import get_full_repo_name  # for backward compatibility
+    from huggingface_hub.constants import HF_HUB_DISABLE_TELEMETRY as DISABLE_TELEMETRY  # for backward compatibility
+except Exception:
+
+    def get_full_repo_name(*args, **kwargs):  # type: ignore
+        raise ImportError(
+            "huggingface_hub is required to use get_full_repo_name. Install it with `pip install huggingface_hub`."
+        )
+
+    DISABLE_TELEMETRY = True
 from packaging import version
 
 from .. import __version__
