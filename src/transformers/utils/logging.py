@@ -31,8 +31,10 @@ from logging import (
 from logging import captureWarnings as _captureWarnings
 from typing import Optional
 
+
 try:
     import huggingface_hub.utils as hf_hub_utils
+
     _hf_hub_available = True
 except ImportError:
     hf_hub_utils = None

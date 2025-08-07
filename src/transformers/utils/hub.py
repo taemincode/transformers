@@ -29,6 +29,7 @@ from uuid import uuid4
 
 import requests
 
+
 try:
     import huggingface_hub
     from huggingface_hub import (
@@ -64,11 +65,11 @@ except ImportError:
     # Mock classes and functions when huggingface_hub is not available
     huggingface_hub = None
     _CACHED_NO_EXIST = None
-    
+
     # Mock exception classes
     class _MockException(Exception):
         pass
-    
+
     EntryNotFoundError = _MockException
     GatedRepoError = _MockException
     HfHubHTTPError = _MockException
@@ -76,62 +77,64 @@ except ImportError:
     OfflineModeIsEnabled = _MockException
     RepositoryNotFoundError = _MockException
     RevisionNotFoundError = _MockException
-    
+
     # Mock constants and regex
     constants = None
     REGEX_COMMIT_HASH = None
-    
+
     # Mock functions that require huggingface_hub
     def _raise_huggingface_hub_error(name):
         raise ImportError(f"huggingface_hub is required to use {name}. Install it with `pip install huggingface_hub`.")
-    
+
     def CommitOperationAdd(*args, **kwargs):
         _raise_huggingface_hub_error("CommitOperationAdd")
-    
+
     def ModelCard(*args, **kwargs):
         _raise_huggingface_hub_error("ModelCard")
-    
+
     def ModelCardData(*args, **kwargs):
         _raise_huggingface_hub_error("ModelCardData")
-    
+
     def create_branch(*args, **kwargs):
         _raise_huggingface_hub_error("create_branch")
-    
+
     def create_commit(*args, **kwargs):
         _raise_huggingface_hub_error("create_commit")
-    
+
     def create_repo(*args, **kwargs):
         _raise_huggingface_hub_error("create_repo")
-    
+
     def hf_hub_download(*args, **kwargs):
         _raise_huggingface_hub_error("hf_hub_download")
-    
+
     def hf_hub_url(*args, **kwargs):
         _raise_huggingface_hub_error("hf_hub_url")
-    
+
     def list_repo_tree(*args, **kwargs):
         _raise_huggingface_hub_error("list_repo_tree")
-    
+
     def snapshot_download(*args, **kwargs):
         _raise_huggingface_hub_error("snapshot_download")
-    
+
     def try_to_load_from_cache(*args, **kwargs):
         _raise_huggingface_hub_error("try_to_load_from_cache")
-    
+
     def http_get(*args, **kwargs):
         _raise_huggingface_hub_error("http_get")
-    
+
     def build_hf_headers(*args, **kwargs):
         _raise_huggingface_hub_error("build_hf_headers")
-    
+
     def get_session(*args, **kwargs):
         _raise_huggingface_hub_error("get_session")
-    
+
     def hf_raise_for_status(*args, **kwargs):
         _raise_huggingface_hub_error("hf_raise_for_status")
-    
+
     def send_telemetry(*args, **kwargs):
         _raise_huggingface_hub_error("send_telemetry")
+
+
 from requests.exceptions import HTTPError
 
 from . import __version__, logging
@@ -171,11 +174,15 @@ default_cache_path = constants.default_cache_path if constants else os.path.join
 # to be set to the right value.
 #
 # TODO: clean this for v5?
-PYTORCH_PRETRAINED_BERT_CACHE = os.getenv("PYTORCH_PRETRAINED_BERT_CACHE", constants.HF_HUB_CACHE if constants else default_cache_path)
+PYTORCH_PRETRAINED_BERT_CACHE = os.getenv(
+    "PYTORCH_PRETRAINED_BERT_CACHE", constants.HF_HUB_CACHE if constants else default_cache_path
+)
 PYTORCH_TRANSFORMERS_CACHE = os.getenv("PYTORCH_TRANSFORMERS_CACHE", PYTORCH_PRETRAINED_BERT_CACHE)
 TRANSFORMERS_CACHE = os.getenv("TRANSFORMERS_CACHE", PYTORCH_TRANSFORMERS_CACHE)
 
-HF_MODULES_CACHE = os.getenv("HF_MODULES_CACHE", os.path.join(constants.HF_HOME if constants else torch_cache_home, "modules"))
+HF_MODULES_CACHE = os.getenv(
+    "HF_MODULES_CACHE", os.path.join(constants.HF_HOME if constants else torch_cache_home, "modules")
+)
 TRANSFORMERS_DYNAMIC_MODULE_NAME = "transformers_modules"
 SESSION_ID = uuid4().hex
 
