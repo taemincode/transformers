@@ -23,8 +23,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional, Union
 
-from huggingface_hub import get_full_repo_name
-
 from .debug_utils import DebugOption
 from .trainer_utils import (
     EvaluationStrategy,
@@ -38,6 +36,7 @@ from .utils import (
     ACCELERATE_MIN_VERSION,
     ExplicitEnum,
     cached_property,
+    get_full_repo_name,
     is_accelerate_available,
     is_apex_available,
     is_ipex_available,
