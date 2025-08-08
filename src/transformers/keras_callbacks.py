@@ -6,7 +6,24 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 import tensorflow as tf
-from huggingface_hub import Repository, create_repo
+
+try:
+    from huggingface_hub import Repository, create_repo
+    _huggingface_hub_available = True
+except ImportError:
+    # Mock classes and functions when huggingface_hub is not available
+    _huggingface_hub_available = False
+
+    def _raise_huggingface_hub_error(name):
+        raise ImportError(f"huggingface_hub is required to use {name}. Install it with `pip install huggingface_hub`.")
+
+    class Repository:
+        def __init__(self, *args, **kwargs):
+            _raise_huggingface_hub_error("Repository")
+
+    def create_repo(*args, **kwargs):
+        _raise_huggingface_hub_error("create_repo")
+
 from packaging.version import parse
 
 from . import IntervalStrategy, PreTrainedTokenizerBase
